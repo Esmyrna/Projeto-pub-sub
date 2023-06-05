@@ -56,4 +56,4 @@ print("Resposta do servidor:", response)
 # Fecha a conexão com o servidor
 client_socket.close()
 
->>>>>>> 1ffeea308ac3a13b1bb8621c91c65f5ab8bc7452
+
