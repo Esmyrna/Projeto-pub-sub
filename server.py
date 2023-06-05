@@ -14,20 +14,21 @@ def handle_client(connection, address):
     print(f"Cliente {address} escolheu: {choice}")
 
     if choice == 'publisher':
-        # Recebe o tópico e a mensagem do Publisher
-        topic = connection.recv(1024).decode()
-        message = connection.recv(1024).decode()
-        print(f"Cliente {address} publicou a mensagem '{message}' no tópico '{topic}'")
+        while True:
+            # Recebe o tópico e a mensagem do Publisher
+            topic = connection.recv(1024).decode()
+            message = connection.recv(1024).decode()
+            print(f"Cliente {address} publicou a mensagem '{message}' no tópico '{topic}'")
 
-        # Armazena a mensagem no tópico correspondente
-        if topic in topics:
-            topics[topic].append(message)
-        else:
-            topics[topic] = [message]
+            # Armazena a mensagem no tópico correspondente
+            if topic in topics:
+                topics[topic].append(message)
+            else:
+                topics[topic] = [message]
 
-        # Envia uma confirmação ao Publisher
-        response = "Mensagem publicada com sucesso."
-        connection.sendall(response.encode())
+            # Envia uma confirmação ao Publisher
+            response = "Mensagem publicada com sucesso."
+            connection.sendall(response.encode())
     elif choice == 'subscriber':
         # Recebe o tópico escolhido pelo Subscriber
         topic = connection.recv(1024).decode()
