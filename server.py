@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import socket
 import threading
 
