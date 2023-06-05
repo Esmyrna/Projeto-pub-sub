@@ -1,4 +1,3 @@
-
 import socket
 
 # Configurações do cliente
@@ -13,17 +12,20 @@ client_socket.connect((HOST, PORT))
 choice = 'publisher'
 client_socket.sendall(choice.encode())
 
-# Envia o tópico e a mensagem para o servidor
-topic = input("Digite o tópico desejado: ")
-client_socket.sendall(topic.encode())
+while True:
+    # Envia o tópico e a mensagem para o servidor
+    topic = input("Digite o tópico desejado (ou 'sair' para encerrar): ")
+    if topic == 'sair':
+        break
+    
+    message = input("Digite a mensagem a ser publicada: ")
+    
+    client_socket.sendall(topic.encode())
+    client_socket.sendall(message.encode())
 
-message = input("Digite a mensagem a ser publicada: ")
-client_socket.sendall(message.encode())
-
-# Recebe a confirmação do servidor
-response = client_socket.recv(1024).decode()
-print("Resposta do servidor:", response)
+    # Recebe a confirmação do servidor
+    response = client_socket.recv(1024).decode()
+    print("Resposta do servidor:", response)
 
 # Fecha a conexão com o servidor
 client_socket.close()
-
