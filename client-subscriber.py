@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import socket
 
 def run_client_subscriber(topic):
