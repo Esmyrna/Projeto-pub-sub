@@ -1,59 +1,78 @@
 import socket
 import threading
 
-class Server:
-    def __init__(self, host, port):
-        self.host = host
-        self.port = port
-        self.topics = {}
+# Dicionário para armazenar os tópicos e as mensagens
+topics = {}
 
-    def start(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.bind((self.host, self.port))
-        self.socket.listen(5)
-        print(f"Servidor iniciado em {self.host}:{self.port}")
+# Função para lidar com as conexões dos clientes
+def handle_client(connection, address):
+    print(f"Cliente {address} conectado.")
 
-        while True:
-            client_socket, address = self.socket.accept()
-            threading.Thread(target=self.handle_client, args=(client_socket,)).start()
+    # Recebe a escolha do cliente: Publisher ou Subscriber
+    choice = connection.recv(1024).decode()
+    print(f"Cliente {address} escolheu: {choice}")
 
-    def handle_client(self, client_socket):
-        topic = client_socket.recv(1024).decode()
-        is_publisher = client_socket.recv(1024).decode() == "publisher"
+    if choice == 'publisher':
+        # Recebe o tópico e a mensagem do Publisher
+        topic = connection.recv(1024).decode()
+        message = connection.recv(1024).decode()
+        print(f"Cliente {address} publicou a mensagem '{message}' no tópico '{topic}'")
 
-        if topic not in self.topics:
-            self.topics[topic] = []
-
-        if is_publisher:
-            self.topics[topic].append(client_socket)
-            print(f"Novo publicador conectado ao tópico '{topic}'")
+        # Armazena a mensagem no tópico correspondente
+        if topic in topics:
+            topics[topic].append(message)
         else:
-            self.topics[topic].append(client_socket)
-            print(f"Novo assinante conectado ao tópico '{topic}'")
+            topics[topic] = [message]
 
-        while True:
-            try:
-                message = client_socket.recv(1024).decode()
-                if not message:
-                    self.topics[topic].remove(client_socket)
-                    print(f"Cliente desconectado do tópico '{topic}'")
-                    break
+        # Envia uma confirmação ao Publisher
+        response = "Mensagem publicada com sucesso."
+        connection.sendall(response.encode())
+    elif choice == 'subscriber':
+        # Recebe o tópico escolhido pelo Subscriber
+        topic = connection.recv(1024).decode()
+        print(f"Cliente {address} se inscreveu no tópico '{topic}'")
 
-                self.send_message_to_subscribers(topic, message)
-            except ConnectionResetError:
-                self.topics[topic].remove(client_socket)
-                print(f"Cliente desconectado do tópico '{topic}'")
-                break
+        # Verifica se o tópico existe
+        if topic in topics:
+            # Envia as mensagens correspondentes ao tópico para o Subscriber
+            messages = topics[topic]
+            for message in messages:
+                connection.sendall(message.encode())
+        else:
+            response = "Tópico não encontrado."
+            connection.sendall(response.encode())
 
-    def send_message_to_subscribers(self, topic, message):
-        subscribers = self.topics[topic].copy()
-        for subscriber in subscribers:
-            try:
-                subscriber.send(message.encode())
-            except ConnectionResetError:
-                self.topics[topic].remove(subscriber)
-                print(f"Cliente desconectado do tópico '{topic}'")
+    print(f"Cliente {address} desconectado.")
+    connection.close()
 
-if __name__ == "__main__":
-    server = Server("localhost", 8000)
-    server.start()
+# Função para remover os tópicos sem clientes
+def remove_inactive_topics():
+    while True:
+        # Remove os tópicos sem clientes
+        inactive_topics = [topic for topic in topics if not topics[topic]]
+        for topic in inactive_topics:
+            del topics[topic]
+        
+        # Aguarda um curto período de tempo antes de verificar novamente
+        # isso evita que a iteração ocorra ao mesmo tempo que o dicionário é modificado
+        threading.Event().wait(1)
+
+# Configurações do servidor
+HOST = '127.0.0.1'
+PORT = 5557
+
+# Criação do socket do servidor
+server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+server_socket.bind((HOST, PORT))
+server_socket.listen(5)
+print("Servidor iniciado.")
+
+# Thread para remover os tópicos sem clientes
+cleanup_thread = threading.Thread(target=remove_inactive_topics)
+cleanup_thread.start()
+
+# Aceita as conexões dos clientes em uma thread separada
+while True:
+    connection, address = server_socket.accept()
+    client_thread = threading.Thread(target=handle_client, args=(connection, address))
+    client_thread.start()

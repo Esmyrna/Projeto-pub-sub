@@ -1,20 +1,24 @@
 import socket
 
-def subscriber():
-    host = "localhost"
-    port = 8000
+def run_client_subscriber(topic):
+    subscriber_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    subscriber_socket.connect(('127.0.0.1', 5557))  
+    print("Conectado ao servidor de assinatura")
 
-    topic = input("Digite o tópico: ")
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((host, port))
-    client_socket.send(topic.encode())
-    client_socket.send("subscriber".encode())
+    
+    subscribe_command = f"SUBSCRIBE {topic}"
+    subscriber_socket.send(subscribe_command.encode())
+    print(f"Inscrito no tópico {topic}")
 
     while True:
-        message = client_socket.recv(1024).decode()
-        print(f"Mensagem recebida: {message}")
+        message = subscriber_socket.recv(1024).decode()
+        if message:
+            if message == "FINISH":
+                break  
+            print("Nova mensagem recebida:", message)
 
-    client_socket.close()
+    subscriber_socket.close()
 
 if __name__ == "__main__":
-    subscriber()
+    topic = input("Digite o tópico para assinar: ")
+    run_client_subscriber(topic)

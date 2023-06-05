@@ -1,20 +1,28 @@
 import socket
 
-def publisher():
-    host = "localhost"
-    port = 8000
+# Configurações do cliente
+HOST = '127.0.0.1'
+PORT = 5557
 
-    topic = input("Digite o tópico: ")
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((host, port))
-    client_socket.send(topic.encode())
-    client_socket.send("publisher".encode())
+# Criação do socket do cliente
+client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+client_socket.connect((HOST, PORT))
 
-    while True:
-        message = input("Digite a mensagem: ")
-        client_socket.send(message.encode())
+# Escolhe a opção de Publisher
+choice = 'publisher'
+client_socket.sendall(choice.encode())
 
-    client_socket.close()
+# Envia o tópico e a mensagem para o servidor
+topic = input("Digite o tópico desejado: ")
+client_socket.sendall(topic.encode())
 
-if __name__ == "__main__":
-    publisher()
+message = input("Digite a mensagem a ser publicada: ")
+client_socket.sendall(message.encode())
+
+# Recebe a confirmação do servidor
+response = client_socket.recv(1024).decode()
+print("Resposta do servidor:", response)
+
+# Fecha a conexão com o servidor
+client_socket.close()
+
